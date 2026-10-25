@@ -1,0 +1,7 @@
+﻿.pio/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.env.*

@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BDX-Mini Droid — 3D 7-DOF + OLED + Ollama AI & Smart Home Hub</title>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --panel: #131b2e;
+      --border: #263454;
+      --accent: #00e5ff;
+      --accent2: #ff6b35;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: grid;
+      grid-template-columns: 1fr 430px;
+      overflow: hidden;
+    }
+    #viewport-wrap {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      background: radial-gradient(circle at 50% 45%, #1a2744 0%, #090d16 80%);
+    }
+    #robot3d {
+      width: 100%;
+      flex: 1;
+      cursor: grab;
+    }
+    #robot3d:active { cursor: grabbing; }
+    #hud-top {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      right: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      pointer-events: none;
+    }
+    .hud-box {
+      background: rgba(19, 27, 46, 0.88);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      pointer-events: auto;
+    }
+    .sh-badges {
+      display: flex;
+      gap: 8px;
+      margin-top: 6px;
+    }
+    .sh-pill {
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid #334155;
+      background: #0f172a;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .sh-pill.on {
+      background: rgba(16, 185, 129, 0.2);
+      border-color: #10b981;
+      color: #6ee7b7;
+    }
+    #chat-bar {
+      background: #0f1626;
+      border-top: 1px solid var(--border);
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    #bot-speech-bubble {
+      background: rgba(0, 229, 255, 0.1);
+      border-left: 3px solid var(--accent);
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 13.5px;
+      color: #f8fafc;
+      min-height: 36px;
+    }
+    .chat-input-row {
+      display: flex;
+      gap: 8px;
+    }
+    #chat-input {
+      flex: 1;
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #fff;
+      padding: 9px 12px;
+      border-radius: 8px;
+      font-size: 13.5px;
+      outline: none;
+    }
+    #chat-input:focus { border-color: var(--accent); }
+    #sidebar {
+      background: var(--panel);
+      border-left: 1px solid var(--border);
+      padding: 14px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .card {
+      background: rgba(11, 15, 25, 0.65);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 11px;
+    }
+    .card-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--accent);
+      margin-bottom: 8px;
+      font-weight: 700;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    #oled-canvas {
+      width: 240px;
+      height: 120px;
+      image-rendering: pixelated;
+      background: #000;
+      border: 1px solid #00e5ff55;
+      border-radius: 4px;
+      display: block;
+      margin: 0 auto;
+    }
+    .btn-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    button {
+      background: #1e293b;
+      color: var(--text);
+      border: 1px solid #334155;
+      border-radius: 7px;
+      padding: 7px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:hover { border-color: var(--accent); background: #263859; }
+    button.active {
+      background: rgba(0, 229, 255, 0.18);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .slider-row {
+      display: grid;
+      grid-template-columns: 118px 1fr 38px;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 5px;
+      font-size: 12px;
+    }
+    input[type="range"] { width: 100%; accent-color: var(--accent); }
+    .deg-val { text-align: right; font-family: Consolas, monospace; color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div id="viewport-wrap">
+    <div id="hud-top">
+      <div class="hud-box">
+        <div style="font-size:15px;font-weight:700;color:#00e5ff;">🤖 BDX-MINI DROID (OLLAMA qwen2.5:3b LIVE)</div>
+        <div style="font-size:12px;color:#94a3b8;margin-top:2px;">Kéo chuột để xoay 3D • Cuộn chuột để thu phóng</div>
+      </div>
+      <div class="hud-box">
+        <div style="font-size:11px;text-transform:uppercase;color:#94a3b8;font-weight:700;">🏠 Smart Home Nodes (ESP32-C3)</div>
+        <div class="sh-badges">
+          <span id="sh-desk_lamp" class="sh-pill">💡 Đèn bàn: OFF</span>
+          <span id="sh-fan" class="sh-pill">🌀 Quạt: OFF</span>
+          <span id="sh-ac" class="sh-pill">❄️ Điều hòa: OFF</span>
+        </div>
+      </div>
+    </div>
+
+    <canvas id="robot3d" width="800" height="560"></canvas>
+
+    <!-- Khung Chat & Ra lệnh Giọng nói với Ollama -->
+    <div id="chat-bar">
+      <div id="bot-speech-bubble">
+        🤖 <b>BDX-Mini:</b> Xin chào! Bộ não <code>Ollama (qwen2.5:3b)</code> trên RTX 4050 đã sẵn sàng. Hãy thử bảo mình: <i>"BDX ơi bật đèn bàn giúp anh"</i> hoặc <i>"Nhảy múa đi BDX!"</i>
+      </div>
+      <div class="chat-input-row">
+        <button id="mic-btn" onclick="toggleVoiceMic()" title="Bấm để nói bằng Micro">🎙️ Nói</button>
+        <input id="chat-input" type="text" placeholder="Nhập câu trò chuyện hoặc lệnh điều khiển nhà thông minh..." onkeydown="if(event.key==='Enter') sendToOllama()" />
+        <button onclick="sendToOllama()" style="background:#0284c7;border-color:#38bdf8;color:#fff;padding:0 16px;">Gửi cho BDX ➔</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="sidebar">
+    <div class="card">
+      <div class="card-title">
+        <span>👀 Màn Hình OLED 128x64 (0x3C)</span>
+        <span id="mood-badge" style="color:#38bdf8;">NEUTRAL</span>
+      </div>
+      <canvas id="oled" width="128" height="64"></canvas>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🎭 Kịch Bản Biểu Cảm & Chuyển Động</div>
+      <div class="btn-grid">
+        <button class="preset-btn active" onclick="setPreset('neutral', this)">😐 Đứng Nhìn (Home)</button>
+        <button class="preset-btn" onclick="setPreset('curious', this)">🐶 Nghiêng Đầu Tò Mò</button>
+        <button class="preset-btn" onclick="setPreset('happy', this)">😄 Vui Vẻ Nhún Nhảy</button>
+        <button class="preset-btn" onclick="setPreset('walk', this)">🚶 Đi Bộ Biped</button>
+        <button class="preset-btn" onclick="setPreset('listen', this)">🎙️ Lắng Nghe</button>
+        <button class="preset-btn" onclick="setPreset('sleepy', this)">😴 Buồn Ngủ</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <span>⚙️ PCA9685 7-DOF Servo (0x40)</span>
+        <button onclick="resetServos()" style="padding:2px 8px;font-size:11px;">Reset 90°</button>
+      </div>
+      <div class="slider-row"><span>[CH0] Neck Yaw</span><input id="sl0" type="range" min="30" max="150" value="90" oninput="onSlide(0,this.value)"><span id="vl0" class="deg-val">90°</span></div>
+      <div class="slider-row"><span>[CH1] Neck Pitch</span><input id="sl1" type="range" min="50" max="135" value="90" oninput="onSlide(1,this.value)"><span id="vl1" class="deg-val">90°</span></div>
+      <div class="slider-row"><span>[CH2] Neck Roll</span><input id="sl2" type="range" min="55" max="125" value="90" oninput="onSlide(2,this.value)"><span id="vl2" class="deg-val">90°</span></div>
+      <hr style="border:0;border-top:1px solid #263454;margin:6px 0;">
+      <div class="slider-row"><span>[CH4] Left Hip</span><input id="sl4" type="range" min="40" max="140" value="90" oninput="onSlide(4,this.value)"><span id="vl4" class="deg-val">90°</span></div>
+      <div class="slider-row"><span>[CH5] Right Hip</span><input id="sl5" type="range" min="40" max="140" value="90" oninput="onSlide(5,this.value)"><span id="vl5" class="deg-val">90°</span></div>
+      <div class="slider-row"><span>[CH6] Left Ankle</span><input id="sl6" type="range" min="50" max="130" value="90" oninput="onSlide(6,this.value)"><span id="vl6" class="deg-val">90°</span></div>
+      <div class="slider-row"><span>[CH7] Right Ankle</span><input id="sl7" type="range" min="50" max="130" value="90" oninput="onSlide(7,this.value)"><span id="vl7" class="deg-val">90°</span></div>
+    </div>
+  </div>
+
+  <script>
+    const oledCanvas = document.getElementById('oled');
+    const octx = oledCanvas.getContext('2d');
+    const c3d = document.getElementById('robot3d');
+    const ctx3d = c3d.getContext('2d');
+
+    const state = {
+      preset: 'neutral', mood: 'neutral', manual: false,
+      cur: { 0: 90, 1: 90, 2: 90, 4: 90, 5: 90, 6: 90, 7: 90 },
+      tgt: { 0: 90, 1: 90, 2: 90, 4: 90, 5: 90, 6: 90, 7: 90 },
+      blink: false, lastBlink: 0,
+      camYaw: -0.55, camPitch: 0.30, camZoom: 1.15
+    };
+
+    // Giao tiếp với Local AI Server (http://localhost:8080/api/chat)
+    async function sendToOllama() {
+      const input = document.getElementById('chat-input');
+      const bubble = document.getElementById('bot-speech-bubble');
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+
+      state.preset = 'listen';
+      state.mood = 'listen';
+      bubble.innerHTML = `⏳ <b>BDX-Mini đang suy nghĩ (Ollama qwen2.5:3b)...</b>`;
+
+      try {
+        const res = await fetch('http://localhost:8080/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text })
+        });
+        const data = await res.json();
+
+        bubble.innerHTML = `🤖 <b>BDX-Mini:</b> ${data.reply || '...'}`;
+        if (data.preset) setPreset(data.preset);
+        if (data.mood) {
+          state.mood = data.mood;
+          document.getElementById('mood-badge').innerText = data.mood.toUpperCase();
+        }
+        if (data.servos) {
+          state.manual = true;
+          if (data.servos.neck_yaw)   state.tgt[0] = data.servos.neck_yaw;
+          if (data.servos.neck_pitch) state.tgt[1] = data.servos.neck_pitch;
+          if (data.servos.neck_roll)  state.tgt[2] = data.servos.neck_roll;
+          setTimeout(() => { state.manual = false; }, 3000);
+        }
+        if (data.smarthome_state) {
+          updateSmartHomeUI(data.smarthome_state);
+        }
+        // Đọc to câu trả lời bằng giọng nói trình duyệt (TTS)
+        if ('speechSynthesis' in window && data.reply) {
+          window.speechSynthesis.cancel();
+          const utter = new SpeechSynthesisUtterance(data.reply);
+          utter.lang = 'vi-VN';
+          utter.rate = 1.08;
+          window.speechSynthesis.speak(utter);
+        }
+      } catch (err) {
+        bubble.innerHTML = `⚠️ <b>Chưa kết nối được Local AI Server (http://localhost:8080):</b> Hãy chạy <code>python local-ai-server/server.py</code>!`;
+      }
+    }
+
+    function updateSmartHomeUI(sh) {
+      const labels = { desk_lamp: '💡 Đèn bàn', fan: '🌀 Quạt', ac: '❄️ Điều hòa' };
+      Object.keys(labels).forEach(k => {
+        const el = document.getElementById('sh-' + k);
+        if (!el || !sh[k]) return;
+        el.innerText = `${labels[k]}: ${sh[k]}`;
+        el.className = 'sh-pill' + (sh[k] === 'ON' ? ' on' : '');
+      });
+    }
+
+    // Nhận diện giọng nói bằng Web Speech API trên trình duyệt
+    function toggleVoiceMic() {
+      const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRec) {
+        alert('Trình duyệt của bạn không hỗ trợ Web Speech API. Hãy dùng Chrome hoặc Edge!');
+        return;
+      }
+      const rec = new SpeechRec();
+      rec.lang = 'vi-VN';
+      const btn = document.getElementById('mic-btn');
+      btn.innerText = '🔴 Đang nghe...';
+      state.preset = 'listen'; state.mood = 'listen';
+      rec.onresult = (e) => {
+        document.getElementById('chat-input').value = e.results[0][0].transcript;
+        sendToOllama();
+      };
+      rec.onend = () => { btn.innerText = '🎙️ Nói'; };
+      rec.start();
+    }
+
+    function fillRRect(c, x, y, w, h, r, color) {
+      c.fillStyle = color;
+      c.beginPath();
+      c.moveTo(x + r, y);
+      c.arcTo(x + w, y, x + w, y + h, r);
+      c.arcTo(x + w, y + h, x, y + h, r);
+      c.arcTo(x, y + h, x, y, r);
+      c.arcTo(x, y, x + w, y, r);
+      c.closePath();
+      c.fill();
+    }
+
+    function renderOLED(now) {
+      if (!state.blink && now - state.lastBlink > 3100) { state.blink = true; state.lastBlink = now; }
+      else if (state.blink && now - state.lastBlink > 130) { state.blink = false; state.lastBlink = now; }
+
+      octx.fillStyle = '#000';
+      octx.fillRect(0, 0, 128, 64);
+      const ox = Math.round(((state.cur[0] - 90) / 45) * 12);
+      const oy = Math.round(((90 - state.cur[1]) / 35) * 7);
+      const lx = 20 + ox, rx = 76 + ox, by = 16 + oy, cyan = '#00e5ff';
+
+      if (state.blink) {
+        fillRRect(octx, lx, by + 14, 32, 4, 2, cyan);
+        fillRRect(octx, rx, by + 14, 32, 4, 2, cyan);
+      } else if (state.mood === 'happy') {
+        fillRRect(octx, lx, by + 2, 32, 26, 11, cyan);
+        fillRRect(octx, lx + 4, by + 13, 24, 20, 8, '#000');
+        fillRRect(octx, rx, by + 2, 32, 26, 11, cyan);
+        fillRRect(octx, rx + 4, by + 13, 24, 20, 8, '#000');
+      } else if (state.mood === 'curious') {
+        fillRRect(octx, lx, by - 3, 32, 37, 8, cyan);
+        fillRRect(octx, rx, by + 7, 32, 19, 6, cyan);
+      } else if (state.mood === 'sleepy') {
+        fillRRect(octx, lx, by + 13, 32, 16, 5, cyan);
+        fillRRect(octx, rx, by + 13, 32, 16, 5, cyan);
+      } else if (state.mood === 'listen') {
+        const p = Math.round(Math.sin(now * 0.014) * 3);
+        fillRRect(octx, lx - p/2, by - p, 32 + p, 32 + p*2, 9, cyan);
+        fillRRect(octx, rx - p/2, by - p, 32 + p, 32 + p*2, 9, cyan);
+      } else {
+        fillRRect(octx, lx, by, 32, 32, 8, cyan);
+        fillRRect(octx, rx, by, 32, 32, 8, cyan);
+      }
+    }
+
+    function rotX(p, a) { const c = Math.cos(a), s = Math.sin(a); return [p[0], p[1]*c - p[2]*s, p[1]*s + p[2]*c]; }
+    function rotY(p, a) { const c = Math.cos(a), s = Math.sin(a); return [p[0]*c + p[2]*s, p[1], -p[0]*s + p[2]*c]; }
+    function rotZ(p, a) { const c = Math.cos(a), s = Math.sin(a); return [p[0]*c - p[1]*s, p[0]*s + p[1]*c, p[2]]; }
+    function add(a, b) { return [a[0]+b[0], a[1]+b[1], a[2]+b[2]]; }
+
+    function makeBox(w, h, d, colors, tf) {
+      const hw = w/2, hh = h/2, hd = d/2;
+      const v = [[-hw,-hh,-hd],[hw,-hh,-hd],[hw,hh,-hd],[-hw,hh,-hd],[-hw,-hh,hd],[hw,-hh,hd],[hw,hh,hd],[-hw,hh,hd]].map(tf);
+      return [
+        { idx:[4,5,6,7], col: colors.front || colors.base },
+        { idx:[1,0,3,2], col: colors.back  || colors.base },
+        { idx:[3,7,6,2], col: colors.top   || colors.base },
+        { idx:[0,1,5,4], col: colors.bottom|| '#1e293b' },
+        { idx:[5,1,2,6], col: colors.side  || colors.base },
+        { idx:[0,4,7,3], col: colors.side  || colors.base }
+      ].map(f => ({ verts: f.idx.map(i => v[i]), color: f.col }));
+    }
+
+    function render3DRobot() {
+      const W = c3d.width = c3d.clientWidth, H = c3d.height = c3d.clientHeight;
+      ctx3d.clearRect(0, 0, W, H);
+
+      const proj = (pt) => {
+        let p = rotY(pt, state.camYaw);
+        p = rotX(p, state.camPitch);
+        const fov = Math.min(W, H) * 0.92 * state.camZoom;
+        const z = p[2] + 6.2;
+        return [W/2 + (p[0] * fov) / z, H/2 - ((p[1] - 0.85) * fov) / z, z];
+      };
+
+      ctx3d.strokeStyle = 'rgba(0, 229, 255, 0.14)';
+      for (let i = -3; i <= 3; i++) {
+        const a = proj([i*0.6, 0, -1.8]), b = proj([i*0.6, 0, 1.8]);
+        ctx3d.beginPath(); ctx3d.moveTo(a[0], a[1]); ctx3d.lineTo(b[0], b[1]); ctx3d.stroke();
+        const c = proj([-1.8, 0, i*0.6]), d = proj([1.8, 0, i*0.6]);
+        ctx3d.beginPath(); ctx3d.moveTo(c[0], c[1]); ctx3d.lineTo(d[0], d[1]); ctx3d.stroke();
+      }
+
+      const d2r = Math.PI / 180;
+      const yaw = (state.cur[0]-90)*d2r, pitch = -(state.cur[1]-90)*d2r, roll = (state.cur[2]-90)*d2r;
+      const lHip = (state.cur[4]-90)*d2r, rHip = -(state.cur[5]-90)*d2r;
+      const lAnk = (state.cur[6]-90)*d2r, rAnk = (state.cur[7]-90)*d2r;
+
+      const bodyTiltZ = -((lAnk + rAnk) * 0.35);
+      const bodyY = 1.25 - Math.abs(lAnk) * 0.15;
+      const torsoTf = (p) => add(rotZ(p, bodyTiltZ), [0, bodyY, 0]);
+      const neckTf = (p) => torsoTf(add(rotY(rotX(rotZ(p, roll), pitch), yaw), [0, 0.52, 0.08]));
+
+      let faces = [];
+      faces.push(...makeBox(0.95, 0.68, 0.78, { base:'#cbd5e1', top:'#f1f5f9', side:'#94a3b8', front:'#e2e8f0' }, torsoTf));
+      faces.push(...makeBox(0.45, 0.22, 0.08, { base:'#ff5722', front:'#ff7043' }, p => torsoTf(add(p, [0, 0.04, 0.41]))));
+      faces.push(...makeBox(0.28, 0.32, 0.28, { base:'#334155', side:'#1e293b' }, p => torsoTf(add(rotY(p, yaw), [0, 0.42, 0.08]))));
+      faces.push(...makeBox(1.38, 0.56, 0.98, { base:'#e2e8f0', top:'#f8fafc', side:'#cbd5e1', front:'#0f172a' }, p => neckTf(add(p, [0, 0.28, 0.14]))));
+      faces.push(...makeBox(1.40, 0.12, 0.72, { base:'#ff5722', top:'#ff7043', side:'#e64a19' }, p => neckTf(add(p, [0, 0.50, 0.12]))));
+      faces.push(...makeBox(0.08, 0.42, 0.14, { base:'#475569' }, p => neckTf(add(rotX(p, -0.3), [ 0.72, 0.48, -0.22]))));
+      faces.push(...makeBox(0.08, 0.42, 0.14, { base:'#475569' }, p => neckTf(add(rotX(p, -0.3), [-0.72, 0.48, -0.22]))));
+      faces.push(...makeBox(0.22, 0.22, 0.10, { base:'#0284c7', front:'#38bdf8' }, p => neckTf(add(p, [0.44, 0.28, 0.65]))));
+
+      const buildLeg = (side, hipAng, ankAng) => {
+        const legTf = (p) => torsoTf(add(rotX(p, hipAng), [side * 0.54, -0.18, 0]));
+        faces.push(...makeBox(0.18, 0.52, 0.22, { base:'#e2e8f0', side:'#94a3b8' }, p => legTf(add(rotX(p, -0.35), [0, -0.22, 0.10]))));
+        faces.push(...makeBox(0.16, 0.54, 0.20, { base:'#ff5722', side:'#d84315' }, p => legTf(add(rotX(p, 0.30), [0, -0.64, 0.02]))));
+        faces.push(...makeBox(0.42, 0.12, 0.68, { base:'#334155', top:'#475569' }, p => legTf(add(rotZ(p, ankAng), [0, -0.96, 0.06]))));
+      };
+      buildLeg( 1, lHip, lAnk);
+      buildLeg(-1, rHip, rAnk);
+
+      faces.map(f => {
+        const pts = f.verts.map(proj);
+        return { pts, color: f.color, avgZ: pts.reduce((s, p) => s + p[2], 0) / pts.length };
+      }).sort((a, b) => b.avgZ - a.avgZ).forEach(f => {
+        ctx3d.fillStyle = f.color;
+        ctx3d.strokeStyle = 'rgba(15, 23, 42, 0.45)';
+        ctx3d.beginPath();
+        ctx3d.moveTo(f.pts[0][0], f.pts[0][1]);
+        for (let i = 1; i < f.pts.length; i++) ctx3d.lineTo(f.pts[i][0], f.pts[i][1]);
+        ctx3d.closePath();
+        ctx3d.fill(); ctx3d.stroke();
+      });
+
+      const eyeLookX = ((state.cur[0] - 90) / 45) * 0.08;
+      const eyeLookY = ((90 - state.cur[1]) / 35) * 0.05;
+      [-0.34, -0.02].forEach(cx => {
+        const h = state.blink ? 0.03 : (state.mood === 'sleepy' ? 0.08 : 0.14), w = 0.11;
+        const corners = [
+          [cx - w + eyeLookX, 0.28 - h + eyeLookY, 0.64],
+          [cx + w + eyeLookX, 0.28 - h + eyeLookY, 0.64],
+          [cx + w + eyeLookX, 0.28 + h + eyeLookY, 0.64],
+          [cx - w + eyeLookX, 0.28 + h + eyeLookY, 0.64]
+        ].map(p => proj(neckTf(p)));
+        ctx3d.fillStyle = '#00e5ff';
+        ctx3d.beginPath();
+        ctx3d.moveTo(corners[0][0], corners[0][1]);
+        for (let i = 1; i < 4; i++) ctx3d.lineTo(corners[i][0], corners[i][1]);
+        ctx3d.closePath();
+        ctx3d.fill();
+      });
+    }
+
+    let dragging = false, lx = 0, ly = 0;
+    c3d.addEventListener('mousedown', e => { dragging = true; lx = e.clientX; ly = e.clientY; });
+    window.addEventListener('mouseup', () => dragging = false);
+    window.addEventListener('mousemove', e => {
+      if (!dragging) return;
+      state.camYaw += (e.clientX - lx) * 0.01;
+      state.camPitch = Math.max(-0.2, Math.min(1.1, state.camPitch + (e.clientY - ly) * 0.01));
+      lx = e.clientX; ly = e.clientY;
+    });
+    c3d.addEventListener('wheel', e => {
+      e.preventDefault();
+      state.camZoom = Math.max(0.65, Math.min(1.7, state.camZoom - e.deltaY * 0.001));
+    }, { passive: false });
+
+    function onSlide(ch, val) {
+      state.manual = true;
+      state.tgt[ch] = parseFloat(val);
+      document.getElementById('vl' + ch).innerText = Math.round(val) + '°';
+    }
+    function syncUI() {
+      [0, 1, 2, 4, 5, 6, 7].forEach(ch => {
+        const v = Math.round(state.cur[ch]);
+        document.getElementById('sl' + ch).value = v;
+        document.getElementById('vl' + ch).innerText = v + '°';
+      });
+    }
+    function resetServos() { setPreset('neutral', document.querySelector('.preset-btn')); }
+    function setPreset(name, btn) {
+      state.preset = name; state.manual = false;
+      document.getElementById('mood-badge').innerText = name.toUpperCase();
+      document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+    }
+
+    function tick(now) {
+      const t = now * 0.001;
+      if (!state.manual) {
+        if (state.preset === 'neutral') {
+          state.mood = 'neutral';
+          state.tgt[0] = 90 + Math.sin(t * 0.9) * 6; state.tgt[1] = 90 + Math.cos(t * 1.2) * 3; state.tgt[2] = 90;
+          state.tgt[4] = 90; state.tgt[5] = 90; state.tgt[6] = 90; state.tgt[7] = 90;
+        } else if (state.preset === 'curious') {
+          state.mood = 'curious';
+          state.tgt[0] = 114; state.tgt[1] = 105; state.tgt[2] = 115 + Math.sin(t * 2.5) * 4;
+          state.tgt[4] = 90; state.tgt[5] = 90; state.tgt[6] = 90; state.tgt[7] = 90;
+        } else if (state.preset === 'happy') {
+          state.mood = 'happy';
+          state.tgt[0] = 90 + Math.sin(t * 4) * 12; state.tgt[1] = 98 + Math.sin(t * 8) * 14; state.tgt[2] = 90 + Math.cos(t * 4) * 10;
+          state.tgt[6] = 90 + Math.sin(t * 8) * 14; state.tgt[7] = 90 - Math.sin(t * 8) * 14;
+        } else if (state.preset === 'walk') {
+          state.mood = 'neutral';
+          const w = t * 5.0;
+          state.tgt[0] = 90 + Math.sin(w) * 10; state.tgt[1] = 92 + Math.abs(Math.cos(w)) * 6; state.tgt[2] = 90 + Math.cos(w) * 8;
+          state.tgt[4] = 90 + Math.sin(w) * 24; state.tgt[5] = 90 + Math.sin(w) * 24;
+          state.tgt[6] = 90 + Math.cos(w) * 16; state.tgt[7] = 90 + Math.cos(w) * 16;
+        } else if (state.preset === 'listen') {
+          state.mood = 'listen';
+          state.tgt[0] = 98; state.tgt[1] = 116; state.tgt[2] = 80;
+          state.tgt[4] = 90; state.tgt[5] = 90; state.tgt[6] = 90; state.tgt[7] = 90;
+        } else if (state.preset === 'sleepy') {
+          state.mood = 'sleepy';
+          state.tgt[0] = 85; state.tgt[1] = 62; state.tgt[2] = 94;
+          state.tgt[4] = 90; state.tgt[5] = 90; state.tgt[6] = 105; state.tgt[7] = 75;
+        }
+      }
+      [0, 1, 2, 4, 5, 6, 7].forEach(ch => { state.cur[ch] += (state.tgt[ch] - state.cur[ch]) * 0.15; });
+      if (!state.manual) syncUI();
+      renderOLED(now);
+      render3DRobot();
+      requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  </script>
+</body>
+</html>

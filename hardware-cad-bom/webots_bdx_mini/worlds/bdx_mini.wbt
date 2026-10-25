@@ -1,0 +1,278 @@
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/backgrounds/protos/TexturedBackground.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/backgrounds/protos/TexturedBackgroundLight.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/floors/protos/RectangleArena.proto"
+
+WorldInfo {
+  info [
+    "BDX-Mini Droid 7-DOF Physics Simulation World"
+  ]
+  title "BDX-Mini Desktop AI Robot (7-DOF)"
+  basicTimeStep 16
+}
+Viewpoint {
+  orientation -0.18 0.96 0.19 0.85
+  position 0.42 -0.48 0.34
+}
+TexturedBackground {
+}
+TexturedBackgroundLight {
+}
+RectangleArena {
+  floorSize 1.2 1.2
+  floorTileSize 0.2 0.2
+}
+Robot {
+  translation 0 0 0.145
+  name "BDX-Mini-7DOF"
+  children [
+    # Thân giữa (Torso)
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0.88 0.91 0.94
+        roughness 0.35
+        metalness 0.1
+      }
+      geometry Box {
+        size 0.085 0.095 0.068
+      }
+    }
+    # Cụm Cổ 3-DOF: CH0 Yaw -> CH1 Pitch -> CH2 Roll -> Đầu BD-1
+    HingeJoint {
+      jointParameters HingeJointParameters {
+        axis 0 0 1
+        anchor 0.01 0 0.04
+      }
+      device [
+        RotationalMotor {
+          name "neck_yaw"
+          minPosition -1.05
+          maxPosition 1.05
+        }
+      ]
+      endPoint Solid {
+        translation 0.01 0 0.048
+        name "neck_yaw_link"
+        children [
+          HingeJoint {
+            jointParameters HingeJointParameters {
+              axis 0 1 0
+              anchor 0 0 0.015
+            }
+            device [
+              RotationalMotor {
+                name "neck_pitch"
+                minPosition -0.65
+                maxPosition 0.78
+              }
+            ]
+            endPoint Solid {
+              translation 0 0 0.015
+              name "neck_pitch_link"
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 1 0 0
+                    anchor 0 0 0.01
+                  }
+                  device [
+                    RotationalMotor {
+                      name "neck_roll"
+                      minPosition -0.52
+                      maxPosition 0.52
+                    }
+                  ]
+                  endPoint Solid {
+                    translation 0.015 0 0.032
+                    name "bdx_head_pod"
+                    children [
+                      Shape {
+                        appearance PBRAppearance {
+                          baseColor 0.95 0.96 0.98
+                          roughness 0.3
+                          metalness 0.1
+                        }
+                        geometry Box {
+                          size 0.105 0.135 0.052
+                        }
+                      }
+                      Display {
+                        translation 0.053 -0.015 0
+                        name "oled_128x64"
+                        width 128
+                        height 64
+                      }
+                      Camera {
+                        translation 0.054 0.038 0
+                        name "ov2640_cam"
+                        width 320
+                        height 240
+                      }
+                    ]
+                    boundingObject Box {
+                      size 0.105 0.135 0.052
+                    }
+                    physics Physics {
+                      density -1
+                      mass 0.045
+                    }
+                  }
+                }
+              ]
+              physics Physics {
+                density -1
+                mass 0.012
+              }
+            }
+          }
+        ]
+        physics Physics {
+          density -1
+          mass 0.012
+        }
+      }
+    }
+    # Chân Trái (CH4 Left Hip + CH6 Left Ankle)
+    HingeJoint {
+      jointParameters HingeJointParameters {
+        axis 0 1 0
+        anchor 0 0.052 -0.025
+      }
+      device [
+        RotationalMotor {
+          name "left_hip"
+        }
+      ]
+      endPoint Solid {
+        translation 0 0.052 -0.065
+        name "left_leg"
+        children [
+          Shape {
+            appearance PBRAppearance {
+              baseColor 1 0.34 0.13
+              roughness 0.4
+            }
+            geometry Box {
+              size 0.024 0.02 0.08
+            }
+          }
+          HingeJoint {
+            jointParameters HingeJointParameters {
+              axis 1 0 0
+              anchor 0 0 -0.045
+            }
+            device [
+              RotationalMotor {
+                name "left_ankle"
+              }
+            ]
+            endPoint Solid {
+              translation 0.008 0 -0.052
+              name "left_foot"
+              children [
+                Shape {
+                  appearance PBRAppearance {
+                    baseColor 0.2 0.25 0.33
+                    roughness 0.6
+                  }
+                  geometry Box {
+                    size 0.072 0.045 0.012
+                  }
+                }
+              ]
+              boundingObject Box {
+                size 0.072 0.045 0.012
+              }
+              physics Physics {
+                density -1
+                mass 0.025
+              }
+            }
+          }
+        ]
+        boundingObject Box {
+          size 0.024 0.02 0.08
+        }
+        physics Physics {
+          density -1
+          mass 0.025
+        }
+      }
+    }
+    # Chân Phải (CH5 Right Hip + CH7 Right Ankle)
+    HingeJoint {
+      jointParameters HingeJointParameters {
+        axis 0 1 0
+        anchor 0 -0.052 -0.025
+      }
+      device [
+        RotationalMotor {
+          name "right_hip"
+        }
+      ]
+      endPoint Solid {
+        translation 0 -0.052 -0.065
+        name "right_leg"
+        children [
+          Shape {
+            appearance PBRAppearance {
+              baseColor 1 0.34 0.13
+              roughness 0.4
+            }
+            geometry Box {
+              size 0.024 0.02 0.08
+            }
+          }
+          HingeJoint {
+            jointParameters HingeJointParameters {
+              axis 1 0 0
+              anchor 0 0 -0.045
+            }
+            device [
+              RotationalMotor {
+                name "right_ankle"
+              }
+            ]
+            endPoint Solid {
+              translation 0.008 0 -0.052
+              name "right_foot"
+              children [
+                Shape {
+                  appearance PBRAppearance {
+                    baseColor 0.2 0.25 0.33
+                    roughness 0.6
+                  }
+                  geometry Box {
+                    size 0.072 0.045 0.012
+                  }
+                }
+              ]
+              boundingObject Box {
+                size 0.072 0.045 0.012
+              }
+              physics Physics {
+                density -1
+                mass 0.025
+              }
+            }
+          }
+        ]
+        boundingObject Box {
+          size 0.024 0.02 0.08
+        }
+        physics Physics {
+          density -1
+          mass 0.025
+        }
+      }
+    }
+  ]
+  boundingObject Box {
+    size 0.085 0.095 0.068
+  }
+  physics Physics {
+    density -1
+    mass 0.18
+  }
+}
