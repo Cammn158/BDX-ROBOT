@@ -1,0 +1,17 @@
+{
+  "owner_name": "Chủ nhân",
+  "facts": [
+    "Đang chế tạo robot để bàn Buddy 7 bậc tự do (ESP32-S3 + OLED + PCA9685)",
+    "Cam tên, anh thích uống cà phê sữa đá buổi tối"
+  ],
+  "recent_history": [
+    {
+      "role": "user",
+      "content": "Buddy nhớ nhé: anh tên là Cam, anh thích uống cà phê sữa đá khi code buổi tối!"
+    },
+    {
+      "role": "assistant",
+      "content": "{\"reply\": \"Buddy nhớ, anh Cam. Anh thích uống cà phê sữa đá buổi tối.\", \"mood\": \"happy\"}"
+    }
+  ]
+}

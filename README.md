@@ -1,6 +1,6 @@
-# 🤖 BDX-Mini Droid: Personal AI Desktop Robot & Smart Home Hub
+# 🤖 Buddy (BDX-Mini): Personal AI Desktop Robot & Smart Home Hub
 
-> **Lấy cảm hứng từ Disney BDX Droid & Star Wars BD-1** — Một chú Robot AI 2 chân để bàn có ngôn ngữ cơ thể sống động (7-DOF), thị giác máy tính, giao tiếp giọng nói thời gian thực (Offline-First) và đóng vai trò Trung tâm Điều khiển Nhà thông minh DIY.
+> **Tên gọi: `Buddy` (Wake-word: *"Buddy ơi"*)** — Lấy cảm hứng thiết kế cơ khí từ Disney BDX Droid & Star Wars BD-1. Một chú Robot AI 2 chân để bàn có ngôn ngữ cơ thể sống động (7-DOF), thị giác máy tính, giao tiếp giọng nói thời gian thực (Offline-First) và đóng vai trò Trung tâm Điều khiển Nhà thông minh DIY.
 
 ---
 

@@ -7,7 +7,7 @@ Kết nối trực tiếp giao diện 3D + OLED Simulator với bộ não Ollama
 import json
 import os
 import sys
-from http.server import HTTPServer, SimpleHTTPRequestHandler
+from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 
 # Thêm đường dẫn local-ai-server vào sys.path
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -51,16 +51,24 @@ class BDXRequestHandler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         if self.path == "/api/chat":
-            length = int(self.headers.get("Content-Length", 0))
-            raw_body = self.rfile.read(length).decode("utf-8") if length > 0 else "{}"
-            req_data = json.loads(raw_body)
-            user_text = req_data.get("message", "").strip()
-            if not user_text:
-                self._send_json({"error": "Empty message"}, 400)
-                return
+            try:
+                length = int(self.headers.get("Content-Length", 0))
+                raw_body = self.rfile.read(length).decode("utf-8") if length > 0 else "{}"
+                req_data = json.loads(raw_body)
+                user_text = req_data.get("message", "").strip()
+                if not user_text:
+                    self._send_json({"error": "Empty message"}, 400)
+                    return
 
-            result = ask_bdx_brain(user_text)
-            self._send_json(result)
+                result = ask_bdx_brain(user_text)
+                self._send_json(result)
+            except Exception as e:
+                self._send_json({
+                    "reply": f"Ối, Buddy gặp lỗi xử lý nhỏ: {e}",
+                    "mood": "curious",
+                    "preset": "curious",
+                    "smarthome_state": smarthome_state
+                }, 200)
             return
 
         self._send_json({"error": "Not found"}, 404)
@@ -74,5 +82,5 @@ if __name__ == "__main__":
     print(f"[BDX-Mini] Local AI Server running at: http://localhost:{port}")
     print("[BDX-Mini] AI Brain: Ollama (qwen2.5:3b @ http://localhost:11434)")
     print("============================================================")
-    server = HTTPServer(("0.0.0.0", port), BDXRequestHandler)
+    server = ThreadingHTTPServer(("0.0.0.0", port), BDXRequestHandler)
     server.serve_forever()

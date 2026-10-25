@@ -178,7 +178,7 @@
   <div id="viewport-wrap">
     <div id="hud-top">
       <div class="hud-box">
-        <div style="font-size:15px;font-weight:700;color:#00e5ff;">🤖 BDX-MINI DROID (OLLAMA qwen2.5:3b LIVE)</div>
+        <div style="font-size:15px;font-weight:700;color:#00e5ff;">🤖 BUDDY — AI DESKTOP ROBOT (OLLAMA qwen2.5:3b)</div>
         <div style="font-size:12px;color:#94a3b8;margin-top:2px;">Kéo chuột để xoay 3D • Cuộn chuột để thu phóng</div>
       </div>
       <div class="hud-box">
@@ -196,12 +196,12 @@
     <!-- Khung Chat & Ra lệnh Giọng nói với Ollama -->
     <div id="chat-bar">
       <div id="bot-speech-bubble">
-        🤖 <b>BDX-Mini:</b> Xin chào! Bộ não <code>Ollama (qwen2.5:3b)</code> trên RTX 4050 đã sẵn sàng. Hãy thử bảo mình: <i>"BDX ơi bật đèn bàn giúp anh"</i> hoặc <i>"Nhảy múa đi BDX!"</i>
+        🤖 <b>Buddy:</b> Xin chào! Em là <b>Buddy</b> (chạy bộ não <code>Ollama qwen2.5:3b</code> trên RTX 4050). Hãy thử bảo em: <i>"Buddy ơi bật đèn bàn giúp anh"</i> hoặc <i>"Nhảy múa đi Buddy!"</i>
       </div>
       <div class="chat-input-row">
         <button id="mic-btn" onclick="toggleVoiceMic()" title="Bấm để nói bằng Micro">🎙️ Nói</button>
-        <input id="chat-input" type="text" placeholder="Nhập câu trò chuyện hoặc lệnh điều khiển nhà thông minh..." onkeydown="if(event.key==='Enter') sendToOllama()" />
-        <button onclick="sendToOllama()" style="background:#0284c7;border-color:#38bdf8;color:#fff;padding:0 16px;">Gửi cho BDX ➔</button>
+        <input id="chat-input" type="text" placeholder="Trò chuyện với Buddy hoặc ra lệnh điều khiển nhà thông minh..." onkeydown="if(event.key==='Enter') sendToOllama()" />
+        <button onclick="sendToOllama()" style="background:#0284c7;border-color:#38bdf8;color:#fff;padding:0 16px;">Gửi cho Buddy ➔</button>
       </div>
     </div>
   </div>
